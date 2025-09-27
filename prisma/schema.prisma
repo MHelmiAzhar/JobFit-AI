@@ -1,0 +1,58 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum FileType {
+  CV
+  PROJECT
+}
+
+model File {
+  id            String   @id @default(uuid())
+  file_name     String
+  original_name String
+  file_size     Int
+  type          FileType
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Foreign key to evaluation
+  evaluation_id String?
+  evaluation    Evaluation? @relation(fields: [evaluation_id], references: [id])
+
+  @@map("files")
+}
+
+enum EvaluationStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+  PENDING
+}
+
+model Evaluation {
+  id            String           @id @default(uuid())
+  status        EvaluationStatus @default(PENDING)
+  result        String?          @db.Text
+  error_message String?
+  attempts_made Int              @default(0)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  // One-to-many relation with files
+  files File[]
+
+  @@map("evaluations")
+}
