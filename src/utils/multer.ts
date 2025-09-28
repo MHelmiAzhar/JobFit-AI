@@ -6,7 +6,13 @@ import { v4 as uuidv4 } from 'uuid'
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, config.upload.uploadPath)
+    const uploadPath = config.upload.uploadPath
+    // Check if the directory exists
+    if (!fs.existsSync(uploadPath)) {
+      // If not, create it
+      fs.mkdirSync(uploadPath, { recursive: true })
+    }
+    cb(null, uploadPath)
   },
   filename: (req, file, cb) => {
     if (file.fieldname === 'cv') {

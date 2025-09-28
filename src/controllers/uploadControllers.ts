@@ -29,6 +29,7 @@ export const uploadFile = async (
     const data = await uploadService.uploadService(cvFile, projectFile)
 
     res.status(201).json({
+      success: true,
       message: 'Files uploaded successfully',
       data
     })

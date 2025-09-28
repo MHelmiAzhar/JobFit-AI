@@ -1,3 +1,4 @@
+import config from '../config'
 import chromaClient from '../database/chromaDB'
 import geminiClient from '../utils/gemini'
 import { GoogleGeminiEmbeddingFunction } from '@chroma-core/google-gemini'
@@ -17,7 +18,7 @@ const embeddingFunction = async (content: any) => {
 }
 
 const embedder = new GoogleGeminiEmbeddingFunction({
-  apiKey: 'AIzaSyDkI41NAlNxrTNhU-yAWqV1mwCJ3qWsL6M'
+  apiKey: config.chromadb.apiKey || ''
 })
 
 export const findSimilarDocuments = async (

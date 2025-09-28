@@ -8,7 +8,6 @@ import path from 'path'
 import uploadRouter from './routes/upload'
 import evaluateRouter from './routes/evaluate'
 import chromaClient from './database/chromaDB'
-import seedToChromaDBRouter from './routes/seedToChromaDB'
 
 // Initialize environment variables
 dotenv.config()
@@ -20,19 +19,9 @@ app.use(cors())
 app.use(express.json())
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')))
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    environment: config.nodeEnv
-  })
-})
-
 // Routes
 app.use('/api/upload', uploadRouter)
 app.use('/api/evaluate', evaluateRouter)
-app.use('/api/seed-to-chroma-db', seedToChromaDBRouter)
 
 // 404 handler
 app.use('*', (req, res) => {
@@ -49,6 +38,7 @@ app.use(
   ) => {
     console.error('Error:', err)
     res.status(500).json({
+      success: false,
       error: 'Internal server error',
       message:
         config.nodeEnv === 'development' ? err.message : 'Something went wrong'
