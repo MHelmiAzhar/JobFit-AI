@@ -1,299 +1,101 @@
-# Backend Service for CV and Project Evaluation
+# JobFit-AI: AI-Powered Evaluation Service
 
-Backend service yang mengevaluasi CV kandidat dan Portofolio menggunakan AI-driven analysis dengan LLM chaining dan RAG (Retrieval Augmented Generation).
+This is the backend service for JobFit-AI, an application designed to automate the evaluation of candidate CVs and project portfolios using Artificial Intelligence. The service analyzes uploaded documents, scores them against job descriptions, and provides detailed feedback.
 
-## Fitur Utama
+## Design Choices
 
-- Upload CV dan project reports (PDF, DOCX, TXT)
-- Pipeline evaluasi asinkron menggunakan AI/LLM
-- RAG (Retrieval Augmented Generation) untuk scoring kontekstual
-- Structured evaluation reports dengan match rates dan feedback
-- Queue-based processing dengan Redis/BullMQ
-- Integrase vector database dengan ChromaDB
+The architecture of this service was carefully chosen to ensure scalability, maintainability, and efficient processing of long-running tasks.
 
-## Tech Stack
+1.  **Separated API and Worker Processes**:
 
-- **Backend**: Express.js + TypeScript
-- **Database**: PostgreSQL (supabase)
-- **ORM**: Prisma
-- **Vector DB**: ChromaDB Cloud
-- **Queue**: BullMQ + Redis
-- **AI/LLM**: Gemini API
-- **File Processing**: Multer, PDF-Parse, Mammoth (DOCX)
+    - The system is divided into two main components: a synchronous **API Server** (`src/app.ts`) and an asynchronous **Worker** (`src/worker.ts`).
+    - **Reasoning**: AI-based document analysis can be time-consuming. To avoid blocking HTTP requests and potential timeouts, the API's role is simply to accept requests, validate input, and enqueue a job. The Worker process listens for these jobs on a queue and handles the heavy lifting of parsing files, calling the AI model, and storing results. This pattern ensures the API remains responsive and the system can handle multiple evaluations concurrently.
 
-## Setup Instructions
+2.  **Queueing System (BullMQ & Redis)**:
 
-### 1. Prerequisites
+    - We use **BullMQ**, backed by **Redis**, to manage the job queue between the API and the Worker.
+    - **Reasoning**: BullMQ provides a robust, reliable, and performant queueing solution. It offers features like job prioritization, retries, and detailed monitoring, which are essential for a production-grade background processing system.
 
-- Node.js 18+
-- Redis instance (local atau cloud)
-- PostgreSQL (local atau cloud)
-- ChromaDB (local atau cloude)
-- Gemini API Key
+3.  **Database and ORM (PostgreSQL & Prisma)**:
 
-### 2. Installation
+    - The primary database is managed by **Prisma**, a modern, type-safe ORM. While the database is not specified, Prisma is well-suited for relational databases like PostgreSQL.
+    - **Reasoning**: Prisma's auto-generated client ensures that all database queries are fully type-safe, which catches errors at compile time and improves developer productivity. Its migration system (`prisma migrate`) provides a straightforward, version-controlled way to evolve the database schema.
 
-```bash
-git clone <repository-url>
-cd backend-evaluation-service
-npm install
-```
+4.  **AI and Vector Database (Google Gemini & ChromaDB)**:
 
-### 3. Environment Setup
+    - The core evaluation logic is powered by **Google's Gemini Pro** model. A **ChromaDB** vector database is used for Retrieval-Augmented Generation (RAG).
+    - **Reasoning**:
+      - The `db:seed` script likely populates ChromaDB with embeddings of ideal skills or criteria for different job roles.
+      - When a CV is evaluated, it is compared against these stored vectors (semantic search) to find the most relevant criteria. This context is then passed to the Gemini model along with the CV content.
+      - This RAG approach makes the AI's evaluation more accurate, consistent, and grounded in the specific requirements of a job role, reducing hallucinations and improving the quality of the feedback.
 
-Buat file `.env` dengan konfigurasi berikut:
+5.  **Configuration and Validation**:
+    - Environment variables are managed with `dotenv`.
+    - Input validation is handled by **Zod**, ensuring that all data entering the system (e.g., API request bodies) conforms to a defined schema. This prevents bad data from propagating through the application.
 
-```env
-PORT=3000
-NODE_ENV=development
+## Getting Started
 
-# PostgreSQL Configuration
-DATABASE_URL=your_postgresql_url
+Follow these instructions to get the project running on your local machine for development and testing.
 
-# ChromaDB Configuration
-CHROMADB_TENANT=your_chromadb_url
-CHROMADB_API_KEY=your_chromadb_api_key
-CHROMADB_DATABASE=your_chromadb_database
+### Prerequisites
 
-# Gemini Configuration
-GEMINI_API_KEY=your_gemini_api_key
+- Node.js (v18 or later recommended)
+- npm or yarn
+- A running Redis instance
+- A running PostgreSQL instance (or other SQL database compatible with Prisma)
 
-# Redis Configuration
-REDIS_URL=redis://localhost:6379
+### Installation & Setup
 
-# File Upload Configuration
-MAX_FILE_SIZE=10485760
-UPLOAD_PATH=./uploads
-```
+1.  **Clone the repository:**
 
-### 4. Prisma Setup
+    ```bash
+    git clone https://github.com/MHelmiAzhar/JobFit-AI.git
+    cd JobFit-AI
+    ```
 
-1. Jalankan migrasi awal:
+2.  **Install dependencies:**
 
-```bash
-npx prisma migrate dev --name init
-```
+    ```bash
+    npm install
+    ```
 
-2. Generate Prisma client:
+3.  **Set up environment variables:**
+    Create a `.env` file in the root of the project by copying the example file:
 
-```bash
-npx prisma generate
-```
+    ```bash
+    cp .env.example .env
+    ```
 
-3. Pastikan `DATABASE_URL` di `.env` sudah sesuai dengan konfigurasi PostgreSQL/Supabase Anda.
+    Now, fill in the `.env` file with your database URL, Redis connection details, and Google AI API key. Refer to `.env.example` for a complete list of required variables.
 
-### 5. Seeding data to ChromaDB
+    ```env
+    # .env
+    DATABASE_URL="postgresql://user:password@host:port/database"
+    REDIS_HOST="127.0.0.1"
+    REDIS_PORT="6379"
+    GEMINI_API_KEY="YOUR_GEMINI_API_KEY"
+    ```
 
-1. Buat project baru di [Supabase](https://supabase.com/)
-2. Copy URL dan API keys ke file `.env`
-3. Jalankan SQL script di `database/schema.sql` di Supabase SQL Editor
+4.  **Run database migrations:**
+    Apply the existing database schema to your database.
 
-### 5. Running the Application
+    ```bash
+    npx prisma migrate dev
+    ```
 
-**Development mode (recommended):**
+5.  **(Optional) Seed the Vector Database:**
+    To populate the ChromaDB vector store with initial data, run the seeder script.
+    ```bash
+    npm run db:seed
+    ```
 
-```bash
-# Run both API server and BullMQ worker
-npm run dev:all
+### Running the Application
 
-# Or run separately in different terminals:
-npm run dev          # API server only
-npm run dev:worker   # BullMQ worker only
-```
-
-**Production mode:**
-
-```bash
-npm run build
-npm start  # Starts both API server and worker
-```
-
-**Separate processes (production):**
-
-```bash
-npm run build
-
-# Terminal 1: API Server
-npm run start:api
-
-# Terminal 2: BullMQ Worker
-npm run start:worker
-```
-
-## API Endpoints
-
-### 1. Upload Files
-
-```http
-POST /api/upload
-Content-Type: multipart/form-data
-
-Form fields:
-- cv: file (PDF/DOCX/TXT)
-- project: file (PDF/DOCX/TXT)
-```
-
-**Response:**
-
-```json
-{
-  "message": "Files uploaded successfully",
-  "upload_id": "uuid",
-  "files": {
-    "cv": {
-      "filename": "unique-cv-name.pdf",
-      "originalName": "resume.pdf",
-      "size": 1024000
-    },
-    "project": {
-      "filename": "unique-project-name.pdf",
-      "originalName": "project-report.pdf",
-      "size": 2048000
-    }
-  }
-}
-```
-
-### 2. Start Evaluation
-
-```http
-POST /api/evaluate
-Content-Type: application/json
-
-{
-  "upload_id": "uuid"
-}
-```
-
-**Response:**
-
-```json
-{
-  "id": "job-uuid",
-  "status": "queued"
-}
-```
+To run the full application, you need to start both the API server and the background worker.
 
-### 3. Get Evaluation Results
-
-```http
-GET /api/result/{jobId}
-```
-
-**Response (Processing):**
-
-```json
-{
-  "id": "job-uuid",
-  "status": "processing"
-}
-```
-
-**Response (Completed):**
+- **Run in Development Mode:**
+  This command uses `concurrently` to start both the API and the worker with hot-reloading.
 
-```json
-{
-  "id": "job-uuid",
-  "status": "completed",
-  "result": {
-    "cv_match_rate": 0.82,
-    "cv_feedback": "Strong in backend and cloud, limited AI integration experience.",
-    "project_score": 7.5,
-    "project_feedback": "Meets prompt chaining requirements, lacks error handling robustness.",
-    "overall_summary": "Good candidate fit, would benefit from deeper RAG knowledge."
-  }
-}
-```
-
-### 5. BullMQ Queue Monitoring
-
-Monitor dan kelola queue jobs:
-
-```http
-# Get queue statistics
-GET /api/queue/stats
-
-# Get specific job info
-GET /api/queue/job/{jobId}
-
-# Clean completed/failed jobs
-POST /api/queue/clean
-Content-Type: application/json
-{
-  "type": "completed",  // completed, failed, active, waiting
-  "limit": 100
-}
-
-# Retry all failed jobs
-POST /api/queue/retry-failed
-```
-
-## Architecture & Design Choices
-
-### 1. Asynchronous Processing
-
-- Menggunakan BullMQ untuk queue management
-- Menghindari API timeouts untuk proses evaluasi yang panjang
-- Mendukung retry mechanisms untuk failed jobs
-- Background processing dengan worker threads
-
-### 2. RAG Implementation
-
-- ChromaDB menyimpan job descriptions dan scoring rubrics sebagai vectors
-- Context retrieval meng-inject informasi relevan ke LLM prompts
-- Memungkinkan evaluasi yang lebih akurat dan kontekstual
-
-### 3. LLM Chaining Pipeline
-
-Multi-step evaluation process:
-
-1. **Extract** structured data dari CV menggunakan LLM
-2. **Compare** dengan job requirements menggunakan retrieved context
-3. **Generate** match rate dan detailed feedback
-4. **Evaluate** project report berdasarkan scoring rubric
-5. **Refine** hasil dengan secondary LLM call untuk overall summary
-
-### 4. Error Handling & Resilience
-
-- Exponential backoff untuk LLM API failures
-- Graceful degradation dengan fallback responses
-- Comprehensive logging untuk debugging
-- Retry mechanisms pada queue level
-- Timeout handling untuk long-running processes
-
-### 5. File Processing
-
-- Support multiple format: PDF, DOCX, TXT
-- File validation dan size limits
-- Secure file storage dengan unique naming
-- Text extraction dengan specialized parsers
-
-## Testing
-
-Untuk testing manual API endpoints:
-
-```bash
-# Upload files
-curl -X POST http://localhost:3000/api/upload \
-  -F "cv=@sample-cv.pdf" \
-  -F "project=@sample-project.pdf"
-
-# Start evaluation
-curl -X POST http://localhost:3000/api/evaluate \
-  -H "Content-Type: application/json" \
-  -d '{"upload_id":"your-upload-id"}'
-
-# Check results
-curl http://localhost:3000/api/result/your-job-id
-```
-
-## Contributing
-
-1. Fork repository
-2. Create feature branch
-3. Make changes dengan proper testing
-4. Submit pull request dengan clear description
-
-## License
-
-MIT License
+  ```bash
+  npm run dev
+  ```

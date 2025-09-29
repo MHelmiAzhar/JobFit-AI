@@ -136,7 +136,6 @@ const evaluateProject = async (
     model: 'gemini-2.5-flash',
     contents: prompt
   })
-  console.log('Response from Gemini Project:', response)
 
   // 1. Extract text from the SDK response
   const rawText = response.text
@@ -196,8 +195,6 @@ const overallSummary = async (
     contents: prompt
   })
 
-  console.log('Response from Gemini Overall Summary:', response)
-
   // 1. Extract text from the SDK response
   const rawText = response.text
 
@@ -233,7 +230,6 @@ export const startEvaluation = async (evaluate_id: string) => {
     )
   }
 
-  // 2. Jika gagal tapi masih dalam jendela coba ulang otomatis oleh sistem.
   if (
     evaluation.status === EvaluationStatus.FAILED &&
     evaluation.attempts_made < 3
@@ -352,7 +348,6 @@ export const processEvaluationInService = async (evaluationId: string) => {
       achievements: cvEvaluation.relevantAchievements,
       culturalFit: cvEvaluation.culturalCollaborationFit
     })
-    console.log('ini cv match rate', cvMatchRate)
 
     // Calculate final project scores based on requirements
     const projectScore: number = calculateProjectScore({
@@ -362,7 +357,6 @@ export const processEvaluationInService = async (evaluationId: string) => {
       documentation: projectEvaluation.documentation,
       creativity: projectEvaluation.creativity
     })
-    console.log('ini project score', projectScore)
 
     // Generate overall summary
     const summaryText = await overallSummary(
@@ -371,7 +365,6 @@ export const processEvaluationInService = async (evaluationId: string) => {
       projectScore,
       projectEvaluation.feedback
     )
-    console.log('ini summary text', summaryText)
 
     await prisma.evaluation.update({
       where: { id: evaluationId },

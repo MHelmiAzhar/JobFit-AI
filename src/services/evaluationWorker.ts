@@ -17,7 +17,6 @@ const worker = new Worker(
         }
       })
 
-      // This function will be created in the next step
       const result = await evaluationService.processEvaluationInService(
         evaluationId
       )

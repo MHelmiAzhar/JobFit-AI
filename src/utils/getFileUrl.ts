@@ -1,4 +1,3 @@
-import path from 'path'
 import config from '../config'
 
 export const getFileUrl = (filePath: string): string => {

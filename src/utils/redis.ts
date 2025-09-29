@@ -5,8 +5,6 @@ import config from '../config'
 const redisConfig: ConnectionOptions = {
   host: config.redis.host,
   port: parseInt(config.redis.port),
-  // Opsi ini penting agar ioredis tidak mencoba terus menerus jika koneksi pertama gagal
-  // dan membiarkan BullMQ yang mengatur logika retry.
   maxRetriesPerRequest: 2
 }
 
