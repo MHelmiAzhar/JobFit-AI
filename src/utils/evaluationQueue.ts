@@ -9,7 +9,7 @@ export const evaluationQueue = new Queue('evaluation', {
       type: 'exponential',
       delay: 5000
     },
-    removeOnComplete: true,
+    removeOnComplete: false,
     removeOnFail: 1000
   }
 })

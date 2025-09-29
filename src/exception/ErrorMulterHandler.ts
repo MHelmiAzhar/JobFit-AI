@@ -1,12 +1,7 @@
 import express from 'express'
-import { uploadMulter } from '../utils/multer'
-import * as uploadController from '../controllers/uploadControllers'
 import multer from 'multer'
-
-const router = express.Router()
-
 // Multer error handler middleware
-const handleMulterError = (
+export const handleMulterError = (
   error: any,
   req: express.Request,
   res: express.Response,
@@ -64,16 +59,3 @@ const handleMulterError = (
 
   next(error)
 }
-
-// POST /upload - Upload CV and Project Report
-router.post(
-  '/upload',
-  uploadMulter.fields([
-    { name: 'cv', maxCount: 1 },
-    { name: 'project', maxCount: 1 }
-  ]),
-  handleMulterError,
-  uploadController.uploadFile
-)
-
-export default router

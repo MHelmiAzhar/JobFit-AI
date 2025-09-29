@@ -7,6 +7,7 @@ import { getFileUrl } from '../utils/getFileUrl'
 import geminiClient from '../utils/gemini'
 import prisma from '../utils/prisma'
 import { evaluationQueue } from '../utils/evaluationQueue'
+import { CreateUserUploadFileSchemaValues } from '../utils/schema/evaluateSchema'
 
 export interface EvaluationResult {
   cv_match_rate: number
@@ -14,6 +15,14 @@ export interface EvaluationResult {
   project_score: number
   project_feedback: string
   overall_summary: string
+}
+
+export const uploadService = async (
+  data: CreateUserUploadFileSchemaValues,
+  cvFile: Express.Multer.File,
+  projectFile: Express.Multer.File
+) => {
+  return await evaluateRepositories.uploadFileToDb(data, cvFile, projectFile)
 }
 
 const evaluateCV = async (
@@ -215,11 +224,27 @@ export const startEvaluation = async (evaluate_id: string) => {
     throw new Error('Evaluation not found')
   }
 
-  if (evaluation.status !== EvaluationStatus.PENDING) {
+  if (
+    evaluation.status === EvaluationStatus.QUEUED ||
+    evaluation.status === EvaluationStatus.PROCESSING
+  ) {
     throw new Error(
-      `Evaluation already in progress or completed with status: ${evaluation.status}`
+      `Evaluation is already active with status: ${evaluation.status}. Please wait.`
     )
   }
+
+  // 2. Jika gagal tapi masih dalam jendela coba ulang otomatis oleh sistem.
+  if (
+    evaluation.status === EvaluationStatus.FAILED &&
+    evaluation.attempts_made < 3
+  ) {
+    throw new Error(
+      `Evaluation failed but is still being retried automatically. Please wait. Attempts: ${evaluation.attempts_made}`
+    )
+  }
+
+  // Reset attempts if previously failed 3 times
+  await evaluateRepositories.updateEvaluationAttempts(evaluate_id)
 
   await evaluationQueue.add('evaluation', { evaluationId: evaluate_id })
 
@@ -255,8 +280,7 @@ export const getEvaluationStatus = async (evaluationId: string) => {
     return {
       status: evaluation.status,
       result: null,
-      error:
-        'Evaluation failed after multiple attempts. Please try starting a new evaluation.'
+      error: 'Evaluation failed after multiple attempts. Please try again.'
     }
   } else if (evaluation.status === EvaluationStatus.FAILED) {
     return {
@@ -279,6 +303,10 @@ export const processEvaluationInService = async (evaluationId: string) => {
       evaluationId
     )
 
+    if (!checkEvaluate) {
+      throw new Error('Evaluation not found')
+    }
+
     const cvPath = getFileUrl(
       checkEvaluate.files.filter((f) => f.type === FileType.CV)[0]?.file_name ||
         ''
@@ -288,6 +316,8 @@ export const processEvaluationInService = async (evaluationId: string) => {
         ?.file_name || ''
     )
 
+    console.log('ini cvPath', cvPath)
+    console.log('ini projectPath', projectPath)
     // Parse documents
     const cvText = await parseDocument(cvPath)
     const projectText = await parseDocument(projectPath)

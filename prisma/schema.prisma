@@ -44,6 +44,9 @@ enum EvaluationStatus {
 
 model Evaluation {
   id            String           @id @default(uuid())
+  name          String
+  email         String
+  phone         String
   status        EvaluationStatus @default(PENDING)
   result        String?          @db.Text
   error_message String?

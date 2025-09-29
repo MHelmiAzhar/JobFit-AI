@@ -1,24 +1,12 @@
 import config from '../config'
-import chromaClient from '../database/chromaDB'
-import geminiClient from '../utils/gemini'
 import { GoogleGeminiEmbeddingFunction } from '@chroma-core/google-gemini'
+import chromaClient from '../vectorDatabase/chromaDB'
+import * as dotenv from 'dotenv'
 
-// const embeddingFunction: IEmbeddingFunction = {
-//   generate: async (texts: string[]) => {
-//     if (!texts || texts.length === 0) return []
-//     return embeddings.embedDocuments(texts)
-//   }
-// }
-
-const embeddingFunction = async (content: any) => {
-  return await geminiClient.models.embedContent({
-    model: 'gemini-embedding-001',
-    contents: content
-  })
-}
+dotenv.config()
 
 const embedder = new GoogleGeminiEmbeddingFunction({
-  apiKey: config.chromadb.apiKey || ''
+  apiKey: config.gemini.apiKey || ''
 })
 
 export const findSimilarDocuments = async (

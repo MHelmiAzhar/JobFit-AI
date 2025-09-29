@@ -1,6 +1,6 @@
 import path from 'path'
+import config from '../config'
 
 export const getFileUrl = (filePath: string): string => {
-  const url = path.join(process.cwd(), 'public/uploads')
-  return `${url}/${filePath}`
+  return `${config.upload.uploadPath}/${filePath}`
 }

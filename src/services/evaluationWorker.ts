@@ -26,7 +26,8 @@ const worker = new Worker(
         where: { id: evaluationId },
         data: {
           status: 'COMPLETED',
-          result: JSON.stringify(result)
+          result: JSON.stringify(result),
+          error_message: null
         }
       })
     } catch (error: any) {

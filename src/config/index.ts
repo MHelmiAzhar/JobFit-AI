@@ -22,6 +22,10 @@ export const config = {
       process.cwd(),
       process.env.UPLOAD_PATH || 'public/uploads'
     )
+  },
+
+  gemini: {
+    apiKey: process.env.GEMINI_API_KEY
   }
 }
 

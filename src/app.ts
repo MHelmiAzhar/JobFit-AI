@@ -3,11 +3,10 @@ import { config } from './config'
 import express from 'express'
 import cors from 'cors'
 import path from 'path'
+import chromaClient from './vectorDatabase/chromaDB'
 
 // Import routes
-import uploadRouter from './routes/upload'
 import evaluateRouter from './routes/evaluate'
-import chromaClient from './database/chromaDB'
 
 // Initialize environment variables
 dotenv.config()
@@ -20,7 +19,6 @@ app.use(express.json())
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')))
 
 // Routes
-app.use('/api/upload', uploadRouter)
 app.use('/api/evaluate', evaluateRouter)
 
 // 404 handler
