@@ -16,7 +16,6 @@ export interface ProjectScores {
 }
 
 export function calculateCVMatchRate(scores: CVScores): number {
-  console.log('ini console scores cv', scores)
   const weights = {
     technicalSkills: 0.4,
     experience: 0.25,

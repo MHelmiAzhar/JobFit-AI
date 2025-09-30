@@ -67,7 +67,6 @@ const evaluateCV = async (
     model: 'gemini-2.5-flash',
     contents: prompt
   })
-  console.log('Response from Gemini Cv:', response)
 
   // 1. Extract text
   const rawText = response.text
@@ -287,6 +286,11 @@ export const getEvaluationStatus = async (evaluationId: string) => {
   } else {
     return {
       status: evaluation.status,
+      user: {
+        name: evaluation.name,
+        email: evaluation.email,
+        phone: evaluation.phone
+      },
       result: evaluation.result ? JSON.parse(evaluation.result as string) : null
     }
   }
@@ -312,8 +316,6 @@ export const processEvaluationInService = async (evaluationId: string) => {
         ?.file_name || ''
     )
 
-    console.log('ini cvPath', cvPath)
-    console.log('ini projectPath', projectPath)
     // Parse documents
     const cvText = await parseDocument(cvPath)
     const projectText = await parseDocument(projectPath)
@@ -328,7 +330,6 @@ export const processEvaluationInService = async (evaluationId: string) => {
       jobDescriptions,
       scoringRubricCv
     )
-    console.log('ini cv evaluation', cvEvaluation)
 
     // Find scoring rubric for project from ChromaDB
     const scoringRubricProject = await VectorService.getDataById(
@@ -339,7 +340,6 @@ export const processEvaluationInService = async (evaluationId: string) => {
       projectText,
       scoringRubricProject
     )
-    console.log('ini project evaluation', projectEvaluation)
 
     // Calculate final cv scores based on requirements
     const cvMatchRate: number = calculateCVMatchRate({
